@@ -1,4 +1,6 @@
+
 services:
+
   mongodb:
     image: mongo:latest
     container_name: mongodb
@@ -11,8 +13,20 @@ services:
     networks:
       - backend
 
-volumes:
-  mongo_data:
+  springapp:
+    build: .
+    container_name: location_app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/location
+    depends_on:
+      - mongodb
+    networks:
+      - backend
 
 networks:
   backend:
+
+volumes:
+  mongo_data:
