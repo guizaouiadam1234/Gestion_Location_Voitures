@@ -1,109 +1,119 @@
-# location-voitures — Application de gestion de locations automobiles
+ location-voitures — Application de gestion de locations automobiles
 
-Ce dépôt contient une application de démonstration pour la gestion de locations de véhicules, développée avec Spring Boot et MongoDB. Le projet met l'accent sur une séparation claire des responsabilités, des tests et l'application de patterns (Facade, Strategy, Event-driven).
+Ce dépôt contient une application de démonstration pour la gestion des locations de véhicules. Le but ici est pédagogique et industriel : proposer une architecture modulaire, testée, et appliquant plusieurs patterns (Facade, Strategy, Event-driven) pour decoupler règles métiers et effets secondaires.
 
-## Vue d'ensemble
+**Résumé fonctionnel**
+- Gestion des clients, véhicules et contrats de location.
+- Règles métiers principales implémentées :
+	- Impossible de créer un contrat si le véhicule est en panne (`EN_PANNE`).
+	- Lorsqu'un véhicule passe en `EN_PANNE`, tous les contrats `EN_ATTENTE` pour ce véhicule sont annulés automatiquement.
+	- Une tâche planifiée marque les contrats dont la date de début est dépassée comme `EN_RETARD`.
 
-Principales entités métiers :
-- Client
-- Véhicule
-- Contrat
+**Technologies**
+- Java (JDK 17+ / 21+ recommandé)
+- Spring Boot 3.x
+- Spring Data MongoDB
+- Jakarta Validation (spring-boot-starter-validation)
+- Lombok
+- JUnit 5, Mockito
+- Maven
 
-Le code met en œuvre des règles métiers importantes :
-- Empêcher la création d'un contrat si le véhicule est en panne (`EN_PANNE`).
-- Lorsqu'un véhicule passe en `EN_PANNE`, annulation automatique des contrats en `EN_ATTENTE` pour ce véhicule.
-- Marquage automatique des contrats en retard (`EN_RETARD`) via une tâche planifiée.
-
-## Structure du projet (par fonctionnalité/layer)
+**Organisation du code (couches et dossiers)**
 
 src/main/java/com/location/location_voitures
-- api.controller      → contrôleurs REST (Endpoints)
-- api.dto             → DTOs exposés par l'API (validation avec Jakarta Validation)
-- api.model           → entités persistées (@Document MongoDB)
-- api.repository      → interfaces Spring Data MongoDB
-- api.service         → logique métier, publication d'événements
-- api.events          → classes d'événements et listeners (Spring Events)
-- api.service.state   → stratégie pour transitions d'état (Strategy pattern)
-- api.scheduler       → tâches planifiées (ex. marquer `EN_RETARD`)
+- `api.controller`  — contrôleurs REST
+- `api.dto`         — DTO exposés par l'API (avec validation `@NotBlank`, `@NotNull`, ...)
+- `api.model`       — entités MongoDB (`@Document`)
+- `api.repository`  — interfaces Spring Data (p.ex. `ClientRepository`)
+- `api.service`     — logique métier et orchestration (publie des événements)
+- `api.events`      — événements et listeners (Spring Events)
+- `api.service.state` — stratégies de transition d'état (Strategy pattern)
+- `api.scheduler`   — tâches planifiées (ex : marquage `EN_RETARD`)
 
-Les tests sont dans `src/test/java` et couvrent tests unitaires et un test d'intégration avec Mongo embarqué.
+Chaque dossier regroupe la responsabilité principale d'une couche : les controllers exposent les endpoints, les services encapsulent la logique métier et font appel aux repositories pour persister.
 
-## Composants et patterns utilisés
+**Modèle de données (principaux éléments)**
+- `Client` : nom, prénom, dateNaissance, numeroPermis, adresse
+- `Vehicle` : marque, modele, immatriculation (index unique), dateAcquisition, etat (enum `VehicleState` : DISPONIBLE, EN_LOCATION, EN_PANNE)
+- `Contract` : clientId, vehicleId, dateDebut, dateFin, etat (enum `ContractState` : EN_ATTENTE, EN_COURS, TERMINE, EN_RETARD, ANNULE)
 
-- Repository (Spring Data): persist et requêtes MongoDB.
-- Service layer: logique métier et transactions applicatives.
-- DTOs + validation: toutes les entrées REST utilisent des DTOs avec annotations de validation (`@NotBlank`, `@NotNull`, `@Past`, ...).
-- Events (Observer): passage d'un véhicule en panne publie un `VehicleStateChangedEvent`; un listener réagit et délègue aux strategies.
-- Strategy pattern: implémentations pour gérer les transitions d'état des contrats (ex. `CancelOnVehiclePanneStrategy`, `MarkLateStrategy`).
-- Facade: `RentalFacade` orchestre scénarios complexes (ex. création de client + contrat en une seule opération).
-- Scheduler: tâche périodique (`ContractScheduler`) qui applique la stratégie de marquage `EN_RETARD`.
+**Patterns Architecturaux et choix de conception**
 
-## Tests
+- Repository (Spring Data) — abstraction d'accès aux données, facilite les requêtes et la persistance.
+- Service layer — centralise la logique métier et évite la logique dans les controllers.
+- DTOs + Validation — séparation entre entités persistées et payloads HTTP ; validation avec Jakarta Validation (`@Valid`).
+- Event-driven (Spring Application Events) — découplage entre déclencheurs (p.ex. changement d'état véhicule) et effets (annulation de contrats). Exemple : `VehicleStateChangedEvent` publié depuis `VehicleService`, consommé par `ContractEventListener`.
+- Strategy pattern — règles de transition d'état des contrats encapsulées en stratégies (`ContractStateTransitionStrategy` et implémentations comme `CancelOnVehiclePanneStrategy`, `MarkLateStrategy`). Permet d'ajouter/retirer règles sans modifier le pipeline.
+- Facade — `RentalFacade` pour orchestrer scénarios complexes (création client + contrat, validations transverses).
+- Scheduler — `ContractScheduler` exécute périodiquement le marquage des contrats en retard.
+- Mapper (manuel aujourd'hui) — conversion `Entity <-> DTO`. Recommandation : remplacer par MapStruct pour réduire boilerplate.
 
-- Tests unitaires: JUnit 5 + Mockito couvrent services, controllers et listeners.
-- Test d'intégration (embedded Mongo): un test d'intégration utilise MongoDB embarqué (Flapdoodle) pour valider le comportement end-to-end — création client/véhicule/contrat et annulation automatique des contrats lors d'une panne de véhicule.
+**Règles métiers importantes (implémentées)**
 
-Note: La dépendance Flapdoodle est déclarée en scope `test` dans le `pom.xml`. Selon votre accès à Maven Central, vous pourriez avoir à ajuster la version utilisée.
+- Création de contrat : refuse la création si le véhicule est `EN_PANNE`.
+- Transition véhicule → `EN_PANNE` : publication d'un événement ; l'auditeur lance les stratégies qui annulent les contrats `EN_ATTENTE` pour ce véhicule.
+- Tâche planifiée : marque les contrats arrivant en retard (`EN_RETARD`) — stratégie dédiée.
 
-## Contrôleurs et validation
+**Contrôleurs (exemples d'API)**
 
-- Les contrôleurs REST retournent désormais des `ResponseEntity<T>` pour exposer correctement les codes HTTP (201 Created, 200 OK, 204 No Content, 404 Not Found).
-- Les DTOs sont annotés pour la validation et les endpoints acceptent `@Valid` sur les corps de requête. Une gestion d'erreurs centralisée (`RestExceptionHandler`) mappe les erreurs métiers en réponses HTTP appropriées.
+- `POST /api/clients` : crée un client — retourne `201 Created` + payload `ClientDTO`.
+- `GET  /api/clients` : liste les clients — retourne `200 OK`.
+- `POST /api/vehicules` : crée un véhicule — retourne `201 Created`.
+- `PUT  /api/vehicules/{id}` : met à jour un véhicule ; si `etat` passe à `EN_PANNE` un événement est émis.
+- `POST /api/contrats` : crée un contrat (DTO validé avec `@Valid`) — `201 Created` si OK.
+- `POST /api/rentals` : endpoint façade pour créer client + contrat en une seule opération.
 
-## Comment lancer le projet
+Les controllers renvoient des `ResponseEntity<T>` pour exposer explicitement les codes HTTP (201, 200, 204, 404, etc.).
 
-Prérequis:
-- JDK 17+
-- Maven
-- MongoDB (local) ou une URL MongoDB (Atlas)
+**Validation & gestion d'erreurs**
 
-Exemples de commandes (PowerShell / Windows):
+- Les DTOs sont annotés (`@NotBlank`, `@NotNull`, `@Past`), et les contrôleurs acceptent `@Valid` sur les corps.
+- `RestExceptionHandler` centralise la transformation des exceptions métiers en réponses HTTP structurées (400, 404, 500), et peut être étendu pour renvoyer des Problem Details (RFC 7807).
 
+**Tests**
+
+1) Tests unitaires
+- Outils : JUnit 5, Mockito
+- Couverture : services, controllers, event listeners, strategies.
+- Exemples de tests :
+	- `ClientServiceUnitTest` — validation des règles de création client et gestion des doublons.
+	- `VehicleServiceUnitTest` — création/mise à jour de véhicule, publication d'événements.
+	- `ContractServiceUnitTest` — création de contrat (interdit si véhicule en panne), mises à jour d'état.
+	- `ContractEventListenerTest` — vérifie que le listener délègue au `StateTransitionService`.
+
+2) Test d'intégration
+- Type : test Spring Boot full context (`@SpringBootTest`) qui exécute la pile entière et touche le dépôt Mongo.
+- Localisation : `src/test/java/com/location/location_voitures/api/integration/EmbeddedMongoIntegrationTest.java`.
+- Ce test vérifie un scénario end-to-end : création client → création véhicule → création contrat → passage du véhicule à `EN_PANNE` → vérification que le contrat `EN_ATTENTE` est annulé.
+- Configuration d'exécution : par défaut les tests d'intégration utilisent la propriété de test `spring.data.mongodb.uri=mongodb://localhost:27017/location-voitures-test`.
+
+Remarques sur l'exécution des tests
+- Pour exécuter tous les tests :
 ```powershell
-mvnw.cmd clean install
-mvnw.cmd spring-boot:run
+.\mvnw.cmd test -DskipTests=false
 ```
-
-Configuration MongoDB (exemple local):
-
-```properties
-spring.data.mongodb.uri=mongodb://localhost:27017/location-voitures
-```
-
-## Exécuter les tests
-
-Unitaires :
-
+- Pour exécuter uniquement le test d'intégration créé :
 ```powershell
-mvnw.cmd test -DskipTests=false
+.\mvnw.cmd -Dtest=EmbeddedMongoIntegrationTest test
+```
+- Avant d'exécuter le test d'intégration, assurez-vous qu'une instance MongoDB est disponible sur `localhost:27017`, ou adaptez la propriété `spring.data.mongodb.uri` (via `application-test.properties` ou la variable d'environnement `SPRING_DATA_MONGODB_URI`).
+
+Si vous préférez Mongo embarqué (Flapdoodle), on peut ré-ajouter la dépendance test correspondante dans le `pom.xml` et exécuter le test sans Mongo local. J'ai temporairement configuré le projet pour utiliser Mongo local pour la reproductibilité dans votre environnement.
+
+**Exemples de commandes utiles (PowerShell)**
+
+Installer et compiler :
+```powershell
+.\mvnw.cmd clean install
 ```
 
-Integration (avec Mongo embarqué) : la dépendance Flapdoodle est utilisée en scope `test` pour démarrer Mongo en mémoire lors des tests d'intégration.
+Lancer uniquement les tests unitaires (par ex. avec un filtre) :
+```powershell
+.\mvnw.cmd -Dtest="*UnitTest" test
+```
 
-## Scénarios API (exemples rapides pour Postman)
+Lancer le test d'intégration spécifique :
+```powershell
+.\mvnw.cmd -Dtest=EmbeddedMongoIntegrationTest test
+```
 
-1) Créer un client (POST `/api/clients`) — retourne 201 et le client créé.
-2) Créer un véhicule (POST `/api/vehicules`) — retourne 201.
-3) Créer un contrat (POST `/api/contrats`) — si le véhicule est `DISPONIBLE`, contrat créé en `EN_ATTENTE`.
-4) Mettre à jour le véhicule en `EN_PANNE` (PUT `/api/vehicules/{id}`) — les contrats `EN_ATTENTE` sont annulés automatiquement.
-
-## Points d'amélioration recommandés
-
-- Remplacer les mappers manuels par MapStruct pour réduire le boilerplate.
-- Ajouter des tests d'intégration supplémentaires (contrôleurs via MockMvc ou TestRestTemplate).
-- Documenter l'API avec OpenAPI / springdoc.
-- Ajouter CI (GitHub Actions) pour exécuter tests et lint à chaque push.
-
-## Fichiers importants
-
-- `src/main/java/.../api/controller` — endpoints REST
-- `src/main/java/.../api/service` — logique métier
-- `src/main/java/.../api/service/state` — stratégies de transition d'état
-- `src/main/java/.../api/events` — événements et listeners
-- `src/test/java/.../integration` — test d'intégration avec Mongo embarqué
-
----
-Si vous souhaitez, je peux :
-- ajouter une collection Postman complète,
-- convertir tous les mappers vers MapStruct,
-- ajouter un pipeline CI pour exécuter les tests automatiquement.
