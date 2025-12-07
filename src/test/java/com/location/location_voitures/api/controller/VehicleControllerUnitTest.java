@@ -22,6 +22,9 @@ public class VehicleControllerUnitTest {
     @Mock
     private VehicleService vehicleService;
 
+    @Mock
+    private com.location.location_voitures.api.service.mapper.VehicleMapper vehicleMapper;
+
     @InjectMocks
     private VehicleController vehicleController;
 
@@ -35,9 +38,11 @@ public class VehicleControllerUnitTest {
         saved.setDateAcquisition(LocalDate.of(2023,5,1));
 
         when(vehicleService.createVehicle(any(Vehicle.class))).thenReturn(saved);
+        when(vehicleMapper.toEntity(any(VehicleDTO.class))).thenReturn(new Vehicle());
 
         VehicleDTO dto = new VehicleDTO();
         BeanUtils.copyProperties(saved, dto);
+        when(vehicleMapper.toDto(saved)).thenReturn(dto);
 
         var response = vehicleController.create(dto);
         VehicleDTO result = response.getBody();

@@ -22,6 +22,9 @@ public class ClientControllerUnitTest {
     @Mock
     private ClientService clientService;
 
+    @Mock
+    private com.location.location_voitures.api.service.mapper.ClientMapper clientMapper;
+
     @InjectMocks
     private ClientController clientController;
 
@@ -34,9 +37,11 @@ public class ClientControllerUnitTest {
         saved.setDateNaissance(LocalDate.of(1980,1,1));
 
         when(clientService.createClient(any(Client.class))).thenReturn(saved);
+        when(clientMapper.toEntity(any(ClientDTO.class))).thenReturn(new Client());
 
         ClientDTO dto = new ClientDTO();
         BeanUtils.copyProperties(saved, dto);
+        when(clientMapper.toDto(saved)).thenReturn(dto);
 
         var response = clientController.create(dto);
         ClientDTO result = response.getBody();

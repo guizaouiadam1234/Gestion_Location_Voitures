@@ -5,7 +5,7 @@ import com.location.location_voitures.api.model.Vehicle;
 import com.location.location_voitures.api.service.VehicleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,16 +17,15 @@ import java.util.List;
 public class VehicleController {
 
     private final VehicleService vehicleService;
+    private final com.location.location_voitures.api.service.mapper.VehicleMapper vehicleMapper;
 
     @PostMapping
     public ResponseEntity<VehicleDTO> create(@Valid @RequestBody VehicleDTO dto) {
-        Vehicle vehicle = new Vehicle();
-        BeanUtils.copyProperties(dto, vehicle);
+        Vehicle vehicle = vehicleMapper.toEntity(dto);
 
         Vehicle saved = vehicleService.createVehicle(vehicle);
 
-        VehicleDTO out = new VehicleDTO();
-        BeanUtils.copyProperties(saved, out);
+        VehicleDTO out = vehicleMapper.toDto(saved);
         return ResponseEntity.status(201).body(out);
     }
 
@@ -44,14 +43,12 @@ public class VehicleController {
 
     @PutMapping("/{id}")
     public ResponseEntity<VehicleDTO> update(@PathVariable String id, @Valid @RequestBody VehicleDTO dto) {
-        Vehicle vehicle = new Vehicle();
-        BeanUtils.copyProperties(dto, vehicle);
+        Vehicle vehicle = vehicleMapper.toEntity(dto);
         vehicle.setId(id);
 
         Vehicle updated = vehicleService.updateVehicle(vehicle);
 
-        VehicleDTO out = new VehicleDTO();
-        BeanUtils.copyProperties(updated, out);
+        VehicleDTO out = vehicleMapper.toDto(updated);
         return ResponseEntity.ok(out);
     }
 

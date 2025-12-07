@@ -15,35 +15,35 @@ import java.util.List;
 @RequestMapping("/api/contrats")
 @RequiredArgsConstructor
 public class ContractController {
-
     private final ContractService contractService;
+    private final ContractMapper contractMapper;
 
     @PostMapping
     public ResponseEntity<ContractDTO> create(@Valid @RequestBody ContractDTO dto) {
-        Contract c = ContractMapper.toEntity(dto);
+        Contract c = contractMapper.toEntity(dto);
         Contract saved = contractService.createContract(c);
-        return ResponseEntity.status(201).body(ContractMapper.toDto(saved));
+        return ResponseEntity.status(201).body(contractMapper.toDto(saved));
     }
 
     @GetMapping
     public ResponseEntity<List<ContractDTO>> getAll() {
         List<Contract> all = contractService.getAllContracts();
-        return ResponseEntity.ok(all.stream().map(ContractMapper::toDto).toList());
+        return ResponseEntity.ok(all.stream().map(contractMapper::toDto).toList());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ContractDTO> getById(@PathVariable String id) {
         return contractService.getById(id)
-                .map(ContractMapper::toDto)
+            .map(contractMapper::toDto)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ContractDTO> update(@PathVariable String id, @Valid @RequestBody ContractDTO dto) {
-        Contract c = ContractMapper.toEntity(dto);
+        Contract c = contractMapper.toEntity(dto);
         c.setId(id);
         Contract updated = contractService.updateContract(c);
-        return ResponseEntity.ok(ContractMapper.toDto(updated));
+        return ResponseEntity.ok(contractMapper.toDto(updated));
     }
 }
