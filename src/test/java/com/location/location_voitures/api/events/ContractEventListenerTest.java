@@ -10,9 +10,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -20,6 +17,9 @@ public class ContractEventListenerTest {
 
     @Mock
     private ContractRepository contractRepository;
+
+    @Mock
+    private com.location.location_voitures.api.service.state.StateTransitionService stateTransitionService;
 
     @InjectMocks
     private ContractEventListener listener;
@@ -34,12 +34,9 @@ public class ContractEventListenerTest {
         c.setDateFin(LocalDate.now().plusDays(2));
         c.setEtat(ContractState.EN_ATTENTE);
 
-        when(contractRepository.findByVehicleIdAndEtat("v1", ContractState.EN_ATTENTE)).thenReturn(List.of(c));
-
+        // listener delegates to StateTransitionService when vehicle is in panne
         listener.onVehicleStateChanged(new VehicleStateChangedEvent("v1", com.location.location_voitures.api.enums.VehicleState.EN_PANNE));
 
-        verify(contractRepository, times(1)).saveAll(anyList());
-        // The listener modifies the returned contract objects before saving, so the original object should be updated
-        assertEquals(ContractState.ANNULE, c.getEtat());
+        verify(stateTransitionService, times(1)).applyForVehiclePanne("v1");
     }
 }
