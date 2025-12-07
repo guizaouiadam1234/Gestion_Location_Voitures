@@ -42,7 +42,8 @@ public class ContractControllerUnitTest {
         dto.setDateDebut(LocalDate.now());
         dto.setDateFin(LocalDate.now().plusDays(1));
 
-        ContractDTO result = contractController.create(dto);
+        var response = contractController.create(dto);
+        ContractDTO result = response.getBody();
         assertEquals("ctr1", result.getId());
     }
 
@@ -52,7 +53,8 @@ public class ContractControllerUnitTest {
         c.setId("ctr1");
         when(contractService.getAllContracts()).thenReturn(List.of(c));
 
-        var list = contractController.getAll();
+        var listResponse = contractController.getAll();
+        var list = listResponse.getBody();
         assertEquals(1, list.size());
     }
 }

@@ -3,8 +3,10 @@ package com.location.location_voitures.api.controller;
 import com.location.location_voitures.api.dto.ClientDTO;
 import com.location.location_voitures.api.model.Client;
 import com.location.location_voitures.api.service.ClientService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,18 +19,19 @@ public class ClientController {
     private final ClientService clientService;
 
     @PostMapping
-    public ClientDTO create(@RequestBody ClientDTO dto) {
+    public ResponseEntity<ClientDTO> create(@Valid @RequestBody ClientDTO dto) {
         Client client = new Client();
         BeanUtils.copyProperties(dto, client);
 
         Client saved = clientService.createClient(client);
 
-        BeanUtils.copyProperties(saved, dto);
-        return dto;
+        ClientDTO out = new ClientDTO();
+        BeanUtils.copyProperties(saved, out);
+        return ResponseEntity.status(201).body(out);
     }
 
     @GetMapping
-    public List<Client> getAll() {
-        return clientService.getAllClients();
+    public ResponseEntity<List<Client>> getAll() {
+        return ResponseEntity.ok(clientService.getAllClients());
     }
 }

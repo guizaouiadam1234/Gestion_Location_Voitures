@@ -1,115 +1,109 @@
-📘 location-voitures — Application de gestion de locations automobiles
-🚗 Description
+# location-voitures — Application de gestion de locations automobiles
 
-Ce projet est une application de gestion de location de véhicules, développée avec Spring Boot et MongoDB.
-Il permet de gérer :
+Ce dépôt contient une application de démonstration pour la gestion de locations de véhicules, développée avec Spring Boot et MongoDB. Le projet met l'accent sur une séparation claire des responsabilités, des tests et l'application de patterns (Facade, Strategy, Event-driven).
 
-Les clients
+## Vue d'ensemble
 
-Les véhicules
+Principales entités métiers :
+- Client
+- Véhicule
+- Contrat
 
-Les contrats de location
+Le code met en œuvre des règles métiers importantes :
+- Empêcher la création d'un contrat si le véhicule est en panne (`EN_PANNE`).
+- Lorsqu'un véhicule passe en `EN_PANNE`, annulation automatique des contrats en `EN_ATTENTE` pour ce véhicule.
+- Marquage automatique des contrats en retard (`EN_RETARD`) via une tâche planifiée.
 
-Les règles métier complexes (pannes, retards, annulations automatiques, etc.)
+## Structure du projet (par fonctionnalité/layer)
 
-Ce projet a été réalisé dans le cadre d’un TP visant à concevoir une architecture claire, modulaire et extensible, en respectant de bonnes pratiques de développement.
+src/main/java/com/location/location_voitures
+- api.controller      → contrôleurs REST (Endpoints)
+- api.dto             → DTOs exposés par l'API (validation avec Jakarta Validation)
+- api.model           → entités persistées (@Document MongoDB)
+- api.repository      → interfaces Spring Data MongoDB
+- api.service         → logique métier, publication d'événements
+- api.events          → classes d'événements et listeners (Spring Events)
+- api.service.state   → stratégie pour transitions d'état (Strategy pattern)
+- api.scheduler       → tâches planifiées (ex. marquer `EN_RETARD`)
 
-🏗️ Technologies utilisées
+Les tests sont dans `src/test/java` et couvrent tests unitaires et un test d'intégration avec Mongo embarqué.
 
-Java 17+
+## Composants et patterns utilisés
 
-Spring Boot 3
+- Repository (Spring Data): persist et requêtes MongoDB.
+- Service layer: logique métier et transactions applicatives.
+- DTOs + validation: toutes les entrées REST utilisent des DTOs avec annotations de validation (`@NotBlank`, `@NotNull`, `@Past`, ...).
+- Events (Observer): passage d'un véhicule en panne publie un `VehicleStateChangedEvent`; un listener réagit et délègue aux strategies.
+- Strategy pattern: implémentations pour gérer les transitions d'état des contrats (ex. `CancelOnVehiclePanneStrategy`, `MarkLateStrategy`).
+- Facade: `RentalFacade` orchestre scénarios complexes (ex. création de client + contrat en une seule opération).
+- Scheduler: tâche périodique (`ContractScheduler`) qui applique la stratégie de marquage `EN_RETARD`.
 
-Spring Data MongoDB
+## Tests
 
-MongoDB / MongoDB Atlas
+- Tests unitaires: JUnit 5 + Mockito couvrent services, controllers et listeners.
+- Test d'intégration (embedded Mongo): un test d'intégration utilise MongoDB embarqué (Flapdoodle) pour valider le comportement end-to-end — création client/véhicule/contrat et annulation automatique des contrats lors d'une panne de véhicule.
 
-Lombok
+Note: La dépendance Flapdoodle est déclarée en scope `test` dans le `pom.xml`. Selon votre accès à Maven Central, vous pourriez avoir à ajuster la version utilisée.
 
-Maven
+## Contrôleurs et validation
 
-(Optionnel) Docker / Docker Compose
+- Les contrôleurs REST retournent désormais des `ResponseEntity<T>` pour exposer correctement les codes HTTP (201 Created, 200 OK, 204 No Content, 404 Not Found).
+- Les DTOs sont annotés pour la validation et les endpoints acceptent `@Valid` sur les corps de requête. Une gestion d'erreurs centralisée (`RestExceptionHandler`) mappe les erreurs métiers en réponses HTTP appropriées.
 
-📦 Architecture du projet
+## Comment lancer le projet
 
-Le projet suit une architecture inspirée du Clean Architecture, organisée en plusieurs couches :
+Prérequis:
+- JDK 17+
+- Maven
+- MongoDB (local) ou une URL MongoDB (Atlas)
 
-src/main/java
-└── com.location.location_voitures
-    ├── api
-    │   ├── controller     → Endpoints REST
-    │   ├── dto            → Objets de transfert API
-    │   └── mapper         → Conversion Entity ↔ DTO
-    │
-    ├── model              → Entités métiers (Mongo @Document)
-    │
-    ├── service            → Logique métier (règles / validations)
-    │
-    └── repository         → Requêtes MongoDB
+Exemples de commandes (PowerShell / Windows):
 
-📂 Fonctionnalités
-👤 Gestion des clients
+```powershell
+mvnw.cmd clean install
+mvnw.cmd spring-boot:run
+```
 
-Création d’un client
+Configuration MongoDB (exemple local):
 
-Mise à jour
+```properties
+spring.data.mongodb.uri=mongodb://localhost:27017/location-voitures
+```
 
-Suppression
+## Exécuter les tests
 
-Récupération d’un client ou de tous les clients
-Règles :
+Unitaires :
 
-Un client est unique par : nom + prénom + date de naissance
+```powershell
+mvnw.cmd test -DskipTests=false
+```
 
-Le numéro de permis doit être unique
+Integration (avec Mongo embarqué) : la dépendance Flapdoodle est utilisée en scope `test` pour démarrer Mongo en mémoire lors des tests d'intégration.
 
-🚘 Gestion des véhicules (à implémenter / en cours)
+## Scénarios API (exemples rapides pour Postman)
 
-États : DISPONIBLE, EN_LOCATION, EN_PANNE
+1) Créer un client (POST `/api/clients`) — retourne 201 et le client créé.
+2) Créer un véhicule (POST `/api/vehicules`) — retourne 201.
+3) Créer un contrat (POST `/api/contrats`) — si le véhicule est `DISPONIBLE`, contrat créé en `EN_ATTENTE`.
+4) Mettre à jour le véhicule en `EN_PANNE` (PUT `/api/vehicules/{id}`) — les contrats `EN_ATTENTE` sont annulés automatiquement.
 
-Impossible de louer un véhicule en panne
+## Points d'amélioration recommandés
 
-Un véhicule ne peut être loué que par un client à la fois
+- Remplacer les mappers manuels par MapStruct pour réduire le boilerplate.
+- Ajouter des tests d'intégration supplémentaires (contrôleurs via MockMvc ou TestRestTemplate).
+- Documenter l'API avec OpenAPI / springdoc.
+- Ajouter CI (GitHub Actions) pour exécuter tests et lint à chaque push.
 
-📄 Gestion des contrats (à implémenter / en cours)
+## Fichiers importants
 
-Création / Gestion du statut
+- `src/main/java/.../api/controller` — endpoints REST
+- `src/main/java/.../api/service` — logique métier
+- `src/main/java/.../api/service/state` — stratégies de transition d'état
+- `src/main/java/.../api/events` — événements et listeners
+- `src/test/java/.../integration` — test d'intégration avec Mongo embarqué
 
-Mise en retard automatique
-
-Annulation si :
-
-véhicule en panne avant le début du contrat
-
-retard bloquant un autre contrat
-
-▶️ Lancer l’application
-🔧 Prérequis
-
-JDK 17+
-
-Maven
-
-MongoDB (local ou Atlas)
-
-🚀 Démarrer l’application localement
-1️⃣ Installer les dépendances et compiler :
-mvn clean install
-
-2️⃣ Lancer l’application :
-mvn spring-boot:run
-
-
-➡️ L’API démarre sur :
-http://localhost:8080
-
-🗄️ Configuration MongoDB
-
-Dans application.properties :
-
-spring.data.mongodb.uri=mongodb://localhost:27017/location
-
-
-Pour MongoDB Atlas :
-
-spring.data.mongodb.uri=mongodb+srv://<user>:<password>@<cluster>/location
+---
+Si vous souhaitez, je peux :
+- ajouter une collection Postman complète,
+- convertir tous les mappers vers MapStruct,
+- ajouter un pipeline CI pour exécuter les tests automatiquement.

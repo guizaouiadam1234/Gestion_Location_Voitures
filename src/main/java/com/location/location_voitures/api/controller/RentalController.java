@@ -6,7 +6,10 @@ import com.location.location_voitures.api.model.Client;
 import com.location.location_voitures.api.model.Contract;
 import com.location.location_voitures.api.service.RentalFacade;
 import com.location.location_voitures.api.service.mapper.ContractMapper;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.BeanUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
@@ -18,25 +21,30 @@ public class RentalController {
     private final RentalFacade rentalFacade;
 
     @PostMapping
-    public ContractDTO createRentalWithNewClient(@RequestBody RentalRequest request) {
+    public ResponseEntity<ContractDTO> createRentalWithNewClient(@Valid @RequestBody RentalRequest request) {
         Client client = new Client();
         BeanUtils.copyProperties(request.getClient(), client);
 
         Contract contract = ContractMapper.toEntity(request.getContract());
 
         Contract saved = rentalFacade.createRentalAndClient(client, contract);
-        return ContractMapper.toDto(saved);
+        return ResponseEntity.status(201).body(ContractMapper.toDto(saved));
     }
 
     @PostMapping("/with-client/{clientId}")
-    public ContractDTO createRentalForExistingClient(@PathVariable String clientId, @RequestBody ContractDTO contractDTO) {
+    public ResponseEntity<ContractDTO> createRentalForExistingClient(@PathVariable String clientId, @Valid @RequestBody ContractDTO contractDTO) {
         Contract contract = ContractMapper.toEntity(contractDTO);
         Contract saved = rentalFacade.createRentalWithExistingClient(clientId, contract.getVehicleId(), contract);
-        return ContractMapper.toDto(saved);
+        return ResponseEntity.status(201).body(ContractMapper.toDto(saved));
     }
 
     public static class RentalRequest {
+        @NotNull
+        @Valid
         private ClientDTO client;
+
+        @NotNull
+        @Valid
         private ContractDTO contract;
 
         public ClientDTO getClient() { return client; }

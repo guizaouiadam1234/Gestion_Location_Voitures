@@ -3,8 +3,10 @@ package com.location.location_voitures.api.controller;
 import com.location.location_voitures.api.dto.VehicleDTO;
 import com.location.location_voitures.api.model.Vehicle;
 import com.location.location_voitures.api.service.VehicleService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,40 +19,45 @@ public class VehicleController {
     private final VehicleService vehicleService;
 
     @PostMapping
-    public VehicleDTO create(@RequestBody VehicleDTO dto) {
+    public ResponseEntity<VehicleDTO> create(@Valid @RequestBody VehicleDTO dto) {
         Vehicle vehicle = new Vehicle();
         BeanUtils.copyProperties(dto, vehicle);
 
         Vehicle saved = vehicleService.createVehicle(vehicle);
 
-        BeanUtils.copyProperties(saved, dto);
-        return dto;
+        VehicleDTO out = new VehicleDTO();
+        BeanUtils.copyProperties(saved, out);
+        return ResponseEntity.status(201).body(out);
     }
 
     @GetMapping
-    public List<Vehicle> getAll() {
-        return vehicleService.getAllVehicles();
+    public ResponseEntity<List<Vehicle>> getAll() {
+        return ResponseEntity.ok(vehicleService.getAllVehicles());
     }
 
     @GetMapping("/{id}")
-    public Vehicle getById(@PathVariable String id) {
-        return vehicleService.getVehicleById(id).orElse(null);
+    public ResponseEntity<Vehicle> getById(@PathVariable String id) {
+        return vehicleService.getVehicleById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
-    public VehicleDTO update(@PathVariable String id, @RequestBody VehicleDTO dto) {
+    public ResponseEntity<VehicleDTO> update(@PathVariable String id, @Valid @RequestBody VehicleDTO dto) {
         Vehicle vehicle = new Vehicle();
         BeanUtils.copyProperties(dto, vehicle);
         vehicle.setId(id);
 
         Vehicle updated = vehicleService.updateVehicle(vehicle);
 
-        BeanUtils.copyProperties(updated, dto);
-        return dto;
+        VehicleDTO out = new VehicleDTO();
+        BeanUtils.copyProperties(updated, out);
+        return ResponseEntity.ok(out);
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable String id) {
+    public ResponseEntity<Void> delete(@PathVariable String id) {
         vehicleService.deleteVehicle(id);
+        return ResponseEntity.noContent().build();
     }
 }

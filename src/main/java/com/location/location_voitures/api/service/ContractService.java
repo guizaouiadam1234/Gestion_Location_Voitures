@@ -1,6 +1,7 @@
 package com.location.location_voitures.api.service;
 
 import com.location.location_voitures.api.model.Contract;
+import com.location.location_voitures.api.enums.ContractState;
 import com.location.location_voitures.api.model.Vehicle;
 import com.location.location_voitures.api.repository.ContractRepository;
 import com.location.location_voitures.api.repository.VehicleRepository;
@@ -26,6 +27,10 @@ public class ContractService {
 
         if (v.get().getEtat() != null && v.get().getEtat().name().equals("EN_PANNE")) {
             throw new IllegalArgumentException("Impossible de créer un contrat : véhicule en panne.");
+        }
+
+        if (contract.getEtat() == null) {
+            contract.setEtat(ContractState.EN_ATTENTE);
         }
 
         return contractRepository.save(contract);

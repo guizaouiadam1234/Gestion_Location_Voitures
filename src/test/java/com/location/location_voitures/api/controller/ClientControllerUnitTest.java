@@ -38,7 +38,8 @@ public class ClientControllerUnitTest {
         ClientDTO dto = new ClientDTO();
         BeanUtils.copyProperties(saved, dto);
 
-        ClientDTO result = clientController.create(dto);
+        var response = clientController.create(dto);
+        ClientDTO result = response.getBody();
         assertEquals("c1", result.getId());
     }
 }

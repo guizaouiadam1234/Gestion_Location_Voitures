@@ -39,7 +39,8 @@ public class VehicleControllerUnitTest {
         VehicleDTO dto = new VehicleDTO();
         BeanUtils.copyProperties(saved, dto);
 
-        VehicleDTO result = vehicleController.create(dto);
+        var response = vehicleController.create(dto);
+        VehicleDTO result = response.getBody();
         assertEquals("v1", result.getId());
     }
 }
