@@ -47,4 +47,8 @@ public class ContractService {
     public Contract updateContract(Contract contract) {
         return contractRepository.save(contract);
     }
+
+    public void deleteContract(String id) {
+        contractRepository.deleteById(id);
+    }
 }

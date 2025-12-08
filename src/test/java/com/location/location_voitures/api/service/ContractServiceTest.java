@@ -130,4 +130,11 @@ public class ContractServiceTest {
         Contract out = contractService.updateContract(c);
         assertEquals("u1", out.getId());
     }
+
+    @Test
+    void deleteContract_shouldCallRepository() {
+        // no exception expected; verify repository delete called
+        contractService.deleteContract("to-delete");
+        org.mockito.Mockito.verify(contractRepository).deleteById("to-delete");
+    }
 }

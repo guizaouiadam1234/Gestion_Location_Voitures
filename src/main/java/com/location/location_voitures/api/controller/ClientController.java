@@ -33,4 +33,10 @@ public class ClientController {
     public ResponseEntity<List<Client>> getAll() {
         return ResponseEntity.ok(clientService.getAllClients());
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable String id) {
+        clientService.deleteClient(id);
+        return ResponseEntity.noContent().build();
+    }
 }

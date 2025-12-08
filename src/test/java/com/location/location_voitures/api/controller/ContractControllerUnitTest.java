@@ -66,4 +66,10 @@ public class ContractControllerUnitTest {
         var list = listResponse.getBody();
         assertEquals(1, list.size());
     }
+
+    @Test
+    void delete_shouldReturnNoContent_andCallService() {
+        contractController.delete("ctr1");
+        org.mockito.Mockito.verify(contractService).deleteContract("ctr1");
+    }
 }

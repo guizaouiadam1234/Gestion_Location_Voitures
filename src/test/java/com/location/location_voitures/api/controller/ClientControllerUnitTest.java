@@ -47,4 +47,10 @@ public class ClientControllerUnitTest {
         ClientDTO result = response.getBody();
         assertEquals("c1", result.getId());
     }
+
+    @Test
+    void delete_shouldReturnNoContent_andCallService() {
+        clientController.delete("c1");
+        org.mockito.Mockito.verify(clientService).deleteClient("c1");
+    }
 }
