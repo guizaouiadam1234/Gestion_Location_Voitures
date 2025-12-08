@@ -98,8 +98,6 @@ Remarques sur l'exécution des tests
 ```
 - Avant d'exécuter le test d'intégration, assurez-vous qu'une instance MongoDB est disponible sur `localhost:27017`, ou adaptez la propriété `spring.data.mongodb.uri` (via `application-test.properties` ou la variable d'environnement `SPRING_DATA_MONGODB_URI`).
 
-Si vous préférez Mongo embarqué (Flapdoodle), on peut ré-ajouter la dépendance test correspondante dans le `pom.xml` et exécuter le test sans Mongo local. J'ai temporairement configuré le projet pour utiliser Mongo local pour la reproductibilité dans votre environnement.
-
 **Exemples de commandes utiles (PowerShell)**
 
 Installer et compiler :
