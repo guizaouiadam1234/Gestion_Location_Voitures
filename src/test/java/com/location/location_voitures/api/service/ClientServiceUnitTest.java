@@ -81,4 +81,30 @@ public class ClientServiceUnitTest {
         assertNotNull(saved.getId());
         assertEquals("saved-1", saved.getId());
     }
+
+    @Test
+    void getAllClients_shouldReturnList() {
+        when(clientRepository.findAll()).thenReturn(java.util.List.of(new Client(), new Client()));
+
+        java.util.List<Client> list = clientService.getAllClients();
+        assertEquals(2, list.size());
+    }
+
+    @Test
+    void getClientById_shouldReturnOptional() {
+        Client c = new Client();
+        c.setId("cx");
+        when(clientRepository.findById("cx")).thenReturn(Optional.of(c));
+
+        Optional<Client> found = clientService.getClientById("cx");
+        assertTrue(found.isPresent());
+        assertEquals("cx", found.get().getId());
+    }
+
+    @Test
+    void deleteClient_shouldCallRepository() {
+        // verify delete call
+        clientService.deleteClient("to-delete");
+        org.mockito.Mockito.verify(clientRepository).deleteById("to-delete");
+    }
 }

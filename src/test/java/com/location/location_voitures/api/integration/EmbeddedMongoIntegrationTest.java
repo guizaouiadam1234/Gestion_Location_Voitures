@@ -1,4 +1,3 @@
-package com.location.location_voitures.api.integration;
 
 import com.location.location_voitures.api.enums.ContractState;
 import com.location.location_voitures.api.enums.VehicleState;

@@ -15,6 +15,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -74,5 +75,59 @@ public class ContractServiceTest {
         Contract saved = contractService.createContract(c);
 
         assertEquals(c.getVehicleId(), saved.getVehicleId());
+    }
+
+    @Test
+    void createContract_shouldThrow_whenVehicleMissing() {
+        when(vehicleRepository.findById("missing")).thenReturn(Optional.empty());
+
+        Contract c = new Contract();
+        c.setVehicleId("missing");
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> contractService.createContract(c));
+        assertEquals("Véhicule introuvable.", ex.getMessage());
+    }
+
+    @Test
+    void createContract_shouldSetDefaultState_whenNull() {
+        Vehicle v = new Vehicle();
+        v.setId("v-def");
+        v.setEtat(com.location.location_voitures.api.enums.VehicleState.DISPONIBLE);
+        when(vehicleRepository.findById("v-def")).thenReturn(Optional.of(v));
+
+        when(contractRepository.save(any(Contract.class))).thenAnswer(i -> i.getArgument(0));
+
+        Contract c = new Contract();
+        c.setVehicleId("v-def");
+        Contract saved = contractService.createContract(c);
+        assertEquals(com.location.location_voitures.api.enums.ContractState.EN_ATTENTE, saved.getEtat());
+    }
+
+    @Test
+    void getAllContracts_shouldReturnList() {
+        when(contractRepository.findAll()).thenReturn(java.util.List.of(new Contract(), new Contract()));
+        java.util.List<Contract> list = contractService.getAllContracts();
+        assertEquals(2, list.size());
+    }
+
+    @Test
+    void getById_shouldReturnOptional() {
+        Contract c = new Contract();
+        c.setId("ctr1");
+        when(contractRepository.findById("ctr1")).thenReturn(Optional.of(c));
+
+        Optional<Contract> found = contractService.getById("ctr1");
+        assertTrue(found.isPresent());
+        assertEquals("ctr1", found.get().getId());
+    }
+
+    @Test
+    void updateContract_shouldSave() {
+        Contract c = new Contract();
+        c.setId("u1");
+        when(contractRepository.save(any(Contract.class))).thenAnswer(i -> i.getArgument(0));
+
+        Contract out = contractService.updateContract(c);
+        assertEquals("u1", out.getId());
     }
 }

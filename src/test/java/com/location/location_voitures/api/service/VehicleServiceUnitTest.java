@@ -99,4 +99,59 @@ public class VehicleServiceUnitTest {
         assertEquals("v1", vse.getVehicleId());
         assertEquals(VehicleState.EN_PANNE, vse.getNewState());
     }
+
+    @Test
+    void getAllVehicles_shouldReturnList() {
+        when(vehicleRepository.findAll()).thenReturn(java.util.List.of(new Vehicle(), new Vehicle(), new Vehicle()));
+        java.util.List<Vehicle> list = vehicleService.getAllVehicles();
+        assertEquals(3, list.size());
+    }
+
+    @Test
+    void getVehicleById_shouldReturnOptional() {
+        Vehicle v = new Vehicle();
+        v.setId("vid");
+        when(vehicleRepository.findById("vid")).thenReturn(Optional.of(v));
+
+        Optional<Vehicle> found = vehicleService.getVehicleById("vid");
+        assertTrue(found.isPresent());
+        assertEquals("vid", found.get().getId());
+    }
+
+    @Test
+    void getByImmatriculation_shouldReturnOptional() {
+        Vehicle v = new Vehicle();
+        v.setId("v2");
+        when(vehicleRepository.findByImmatriculation("IM-1")).thenReturn(Optional.of(v));
+
+        Optional<Vehicle> found = vehicleService.getByImmatriculation("IM-1");
+        assertTrue(found.isPresent());
+        assertEquals("v2", found.get().getId());
+    }
+
+    @Test
+    void deleteVehicle_shouldCallRepository() {
+        vehicleService.deleteVehicle("del-id");
+        verify(vehicleRepository).deleteById("del-id");
+    }
+
+    @Test
+    void updateVehicle_shouldNotPublish_whenNoStateChange() {
+        Vehicle current = new Vehicle();
+        current.setId("v3");
+        current.setEtat(com.location.location_voitures.api.enums.VehicleState.DISPONIBLE);
+
+        Vehicle updated = new Vehicle();
+        updated.setId("v3");
+        updated.setEtat(com.location.location_voitures.api.enums.VehicleState.DISPONIBLE);
+        updated.setImmatriculation("IM-3");
+
+        when(vehicleRepository.findById("v3")).thenReturn(Optional.of(current));
+        when(vehicleRepository.findByImmatriculation(any())).thenReturn(Optional.empty());
+        when(vehicleRepository.save(any(Vehicle.class))).thenAnswer(i -> i.getArgument(0));
+
+        Vehicle result = vehicleService.updateVehicle(updated);
+        assertEquals(com.location.location_voitures.api.enums.VehicleState.DISPONIBLE, result.getEtat());
+        verify(publisher, never()).publishEvent(any());
+    }
 }
