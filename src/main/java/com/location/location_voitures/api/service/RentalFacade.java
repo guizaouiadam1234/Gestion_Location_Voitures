@@ -42,4 +42,16 @@ public class RentalFacade {
         }
         return createRentalWithExistingClient(saved.getId(), contract.getVehicleId(), contract);
     }
+
+    public Client updateClient(Client client) {
+        return clientService.updateClient(client);
+    }
+
+    public Vehicle updateVehicle(Vehicle vehicle) {
+        return vehicleService.updateVehicle(vehicle);
+    }
+
+    public Contract updateContract(Contract contract) {
+        return contractService.updateContract(contract);
+    }
 }

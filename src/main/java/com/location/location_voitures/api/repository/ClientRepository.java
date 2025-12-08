@@ -11,4 +11,6 @@ public interface ClientRepository extends MongoRepository<Client, String> {
     Optional<Client> findByNomAndPrenomAndDateNaissance(String nom, String prenom, LocalDate dateNaissance);
 
     boolean existsByNumeroPermis(String numeroPermis);
+
+    Optional<Client> findByNumeroPermis(String numeroPermis);
 }

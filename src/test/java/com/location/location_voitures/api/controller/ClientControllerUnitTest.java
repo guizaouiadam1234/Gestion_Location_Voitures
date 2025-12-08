@@ -53,4 +53,20 @@ public class ClientControllerUnitTest {
         clientController.delete("c1");
         org.mockito.Mockito.verify(clientService).deleteClient("c1");
     }
+
+    @Test
+    void update_shouldReturnUpdatedDto() {
+        Client saved = new Client();
+        saved.setId("c1");
+        saved.setNom("Dupont");
+
+        when(clientMapper.toEntity(any(ClientDTO.class))).thenReturn(new Client());
+        when(clientService.updateClient(any(Client.class))).thenReturn(saved);
+        ClientDTO dto = new ClientDTO();
+        dto.setNom("Dupont");
+        when(clientMapper.toDto(saved)).thenReturn(dto);
+
+        var resp = clientController.update("c1", dto);
+        assertEquals("Dupont", resp.getBody().getNom());
+    }
 }

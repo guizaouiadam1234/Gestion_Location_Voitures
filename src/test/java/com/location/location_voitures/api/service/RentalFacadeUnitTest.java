@@ -76,4 +76,22 @@ public class RentalFacadeUnitTest {
         assertEquals("v1", result.getVehicleId());
         assertEquals("c-saved", result.getClientId());
     }
+
+    @Test
+    void updateDelegates_shouldCallUnderlyingServices() {
+        Client c = new Client(); c.setId("c1");
+        when(clientService.updateClient(any(Client.class))).thenReturn(c);
+        Client out = rentalFacade.updateClient(c);
+        assertEquals("c1", out.getId());
+
+        Vehicle v = new Vehicle(); v.setId("v1");
+        when(vehicleService.updateVehicle(any(Vehicle.class))).thenReturn(v);
+        Vehicle vo = rentalFacade.updateVehicle(v);
+        assertEquals("v1", vo.getId());
+
+        Contract ctr = new Contract(); ctr.setId("ctr1");
+        when(contractService.updateContract(any(Contract.class))).thenReturn(ctr);
+        Contract co = rentalFacade.updateContract(ctr);
+        assertEquals("ctr1", co.getId());
+    }
 }

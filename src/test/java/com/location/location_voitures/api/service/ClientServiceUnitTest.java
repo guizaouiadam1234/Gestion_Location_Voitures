@@ -107,4 +107,41 @@ public class ClientServiceUnitTest {
         clientService.deleteClient("to-delete");
         org.mockito.Mockito.verify(clientRepository).deleteById("to-delete");
     }
+
+    @Test
+    void updateClient_shouldSave_whenValid() {
+        Client existing = new Client();
+        existing.setId("c-1");
+        when(clientRepository.findById("c-1")).thenReturn(Optional.of(existing));
+        when(clientRepository.findByNomAndPrenomAndDateNaissance(any(), any(), any())).thenReturn(Optional.empty());
+        when(clientRepository.findByNumeroPermis(any())).thenReturn(Optional.empty());
+        when(clientRepository.save(any(Client.class))).thenAnswer(i -> i.getArgument(0));
+
+        Client in = new Client();
+        in.setId("c-1");
+        in.setNom("New");
+        in.setPrenom("Name");
+        in.setNumeroPermis("PERM-OK");
+        Client out = clientService.updateClient(in);
+        assertEquals("c-1", out.getId());
+        assertEquals("New", out.getNom());
+    }
+
+    @Test
+    void updateClient_shouldThrow_whenConflictNumeroPermis() {
+        Client existing = new Client();
+        existing.setId("c-1");
+        when(clientRepository.findById("c-1")).thenReturn(Optional.of(existing));
+
+        Client other = new Client();
+        other.setId("c-2");
+        when(clientRepository.findByNumeroPermis("PERM-X")).thenReturn(Optional.of(other));
+
+        Client in = new Client();
+        in.setId("c-1");
+        in.setNumeroPermis("PERM-X");
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> clientService.updateClient(in));
+        assertEquals("Ce numéro de permis est déjà utilisé.", ex.getMessage());
+    }
 }

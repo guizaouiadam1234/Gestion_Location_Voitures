@@ -46,4 +46,41 @@ public class ClientService {
     public void deleteClient(String id) {
         clientRepository.deleteById(id);
     }
+
+    public Client updateClient(Client client) {
+        if (client.getId() == null) {
+            throw new IllegalArgumentException("Client id must be provided for update.");
+        }
+
+        // ensure client exists
+        Client existing = clientRepository.findById(client.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Client introuvable."));
+
+        // check duplicate by name+dob
+        clientRepository.findByNomAndPrenomAndDateNaissance(
+                client.getNom(), client.getPrenom(), client.getDateNaissance()
+        ).ifPresent(c -> {
+            if (!c.getId().equals(client.getId())) {
+                throw new IllegalArgumentException("Un autre client avec mêmes nom/prénom/date existe.");
+            }
+        });
+
+        // check numeroPermis uniqueness
+        if (client.getNumeroPermis() != null) {
+            clientRepository.findByNumeroPermis(client.getNumeroPermis()).ifPresent(c -> {
+                if (!c.getId().equals(client.getId())) {
+                    throw new IllegalArgumentException("Ce numéro de permis est déjà utilisé.");
+                }
+            });
+        }
+
+        // merge fields - here we save the provided client (caller should set desired fields)
+        existing.setNom(client.getNom());
+        existing.setPrenom(client.getPrenom());
+        existing.setDateNaissance(client.getDateNaissance());
+        existing.setNumeroPermis(client.getNumeroPermis());
+        existing.setAdresse(client.getAdresse());
+
+        return clientRepository.save(existing);
+    }
 }
