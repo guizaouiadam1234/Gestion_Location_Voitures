@@ -10,7 +10,7 @@ Ce dépôt contient une application de démonstration pour la gestion des locati
 	- Une tâche planifiée marque les contrats dont la date de début est dépassée comme `EN_RETARD`.
 
 **Technologies**
-- Java (JDK 17+ / 21+ recommandé)
+- Java
 - Spring Boot 3.x
 - Spring Data MongoDB
 - Jakarta Validation (spring-boot-starter-validation)
