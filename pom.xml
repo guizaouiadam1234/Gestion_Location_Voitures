@@ -64,8 +64,7 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<!-- Removed embedded Mongo dependency to rely on local test Mongo instance.
-			 If you want embedded Mongo, add a resolvable Flapdoodle version. -->
+
 	</dependencies>
 
 	<build>
